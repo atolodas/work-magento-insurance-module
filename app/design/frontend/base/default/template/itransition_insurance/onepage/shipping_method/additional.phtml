@@ -1,0 +1,103 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magento.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magento.com for more information.
+ *
+ * @category    design
+ * @package     base_default
+ * @copyright   Copyright (c) 2006-2017 X.commerce, Inc. and affiliates (http://www.magento.com)
+ * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+?>
+<?php
+	$insurance_enabled_carrier_data = $this->getInsuranceEnabledCarrierData();
+?>
+<?php if ($this->is_insurance_module_active) : ?>
+    <div id="insurance-block" style="margin-top: 15px; margin-bottom: 10px;">
+	    <h3>Would you like to include insurance?</h3>
+	    <p class="control">
+            <?php // echo $this->helper('itransition_insurance/checker')->hello(); ?>
+		    <input type="checkbox"
+		           class="checkbox"
+		           name="include_insurance"
+		           id="include_insurance_input"
+		           value="1" />
+		    <label for="include_insurance_input" style="vertical-align: text-bottom;">
+			    Include insurance
+		    </label>
+	    </p>
+    </div>
+<?php endif; ?>
+
+<?php if (!$this->getQuote()->isVirtual()): ?>
+    <?php echo $this->helper('giftmessage/message')->getInline('onepage_checkout', $this->getQuote(), $this->getDontDisplayContainer()) ?>
+<?php endif; ?>
+
+
+<?php if ($this->is_insurance_module_active) : ?>
+    <script type="text/javascript">
+        //<![CDATA[
+        var $j = jQuery.noConflict();
+        $j(document).ready(function() {
+        	var insurance_enabled_carrier_data = {};
+            <?php foreach($insurance_enabled_carrier_data as $carrier_code => $carrier_data) : ?>
+                insurance_enabled_carrier_data['<?= $carrier_code; ?>'] = JSON.parse('<?= json_encode($carrier_data); ?>');
+            <?php endforeach; ?>
+			console.log('insurance enabled shipping methods');
+			console.log(insurance_enabled_carrier_data);
+			// If selected Shipping Method does not have insurance enabled,
+			// disable the `include_insurance` input
+			var selected_shipping_method_code = $j('[name="shipping_method"]:checked').val();
+			if (insurance_enabled_carrier_data.hasOwnProperty(selected_shipping_method_code)) {
+				console.log('Has property (initial)');
+				toggleInsurance(true, selected_shipping_method_code);
+			}
+            $j(document).on('click', 'input[name="shipping_method"]', function(event) {
+            	var selected_shipping_method_code = event.target.value;
+            	if (insurance_enabled_carrier_data.hasOwnProperty(event.target.value)) {
+					toggleInsurance(true, selected_shipping_method_code);
+	            } else {
+					toggleInsurance(false, selected_shipping_method_code);
+	            }
+            });
+	
+            function toggleInsurance(on, selected_shipping_method_code) {
+				var $include_insurance_checkbox = $j('#include_insurance_input');
+				var $include_insurance_label = $include_insurance_checkbox.next('label');
+				console.log($include_insurance_label);
+				var $include_insurance_block = $j('#insurance-block');
+            	if (on) {
+            		var selected_carrier_data = insurance_enabled_carrier_data[selected_shipping_method_code];
+            		var insurance_value = selected_carrier_data.insurance_value;
+					var insurance_value_with_symbol = insurance_value + '%' + ' of order total';
+            		if (selected_carrier_data.insurance_type !== 'percentage') {
+						insurance_value_with_symbol = selected_carrier_data.currency_symbol + insurance_value;
+		            }
+            		var label_text = 'Include insurance (' + insurance_value_with_symbol + ')';
+					$include_insurance_label.text(label_text);
+					$include_insurance_block.show();
+            	} else {
+					console.log('here I am hiding the input');
+                    $include_insurance_checkbox.prop({checked: false});
+					$include_insurance_block.hide();
+	            }
+            }
+        });
+        //]]>
+    </script>
+<?php endif ?>
